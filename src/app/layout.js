@@ -1,7 +1,8 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
-import { Toaster } from "react-hot-toast"; // টোস্ট এলার্ট দেখানোর জন্য
+import { Toaster } from "react-hot-toast";
+import Navbar from "@/components/Navbar";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -13,9 +14,13 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body
+        className={`${inter.className} bg-gray-50 dark:bg-gray-950 transition-colors duration-300 min-h-screen flex flex-col`}
+      >
         <AuthProvider>
-          {children}
+          <Navbar />
+          <main className="flex-grow">{children}</main>
+          {/* Footer পরে যোগ করবো */}
           <Toaster position="top-center" />
         </AuthProvider>
       </body>
