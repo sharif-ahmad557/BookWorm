@@ -28,11 +28,14 @@ export default function Register() {
 
     try {
       setLoading(true);
+      // ১. ফায়ারবেসে ইউজার তৈরি
       const result = await createUser(email, password);
       const user = result.user;
 
+      // ২. প্রোফাইল আপডেট
       await updateUserProfile(name, photoURL);
 
+      // ৩. মঙ্গোডিবিতে ডাটা সেভ
       const response = await fetch("/api/auth/create-user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -46,8 +49,9 @@ export default function Register() {
 
       if (!response.ok) throw new Error("Failed to save user to database");
 
+      // ৪. সফল হলে সরাসরি লাইব্রেরি পেজে পাঠানো (নতুন ইউজার = সাধারণ ইউজার)
       toast.success("Registration successful! Welcome to BookWorm.");
-      router.push("/");
+      router.replace("/my-library");
     } catch (error) {
       console.error(error);
       toast.error(error.message || "Registration failed");
@@ -59,6 +63,7 @@ export default function Register() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl w-full flex bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
+        {/* Image Section */}
         <div className="hidden md:block w-1/2 relative">
           <img
             src="https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80"
@@ -74,7 +79,7 @@ export default function Register() {
           </div>
         </div>
 
-        {/* Right Side - Form */}
+        {/* Form Section */}
         <div className="w-full md:w-1/2 p-8 md:p-12">
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-8 text-center md:text-left">
             Create an Account

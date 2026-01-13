@@ -12,6 +12,33 @@ export default function Login() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
+  // রোল অনুযায়ী রিডাইরেক্ট করার ফাংশন
+  const handleNavigation = async (email) => {
+    try {
+      // আপনার ফোল্ডার স্ট্রাকচার অনুযায়ী API কল করা হচ্ছে
+      const res = await fetch(`/api/user/users/${email}`);
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch user data");
+      }
+
+      const userData = await res.json();
+
+      // রোল চেক করা হচ্ছে
+      if (userData?.role === "admin") {
+        router.replace("/admin/dashboard"); // বা /admin
+        toast.success(`Welcome back, Admin!`);
+      } else {
+        router.replace("/my-library");
+        toast.success("Login Successful!");
+      }
+    } catch (error) {
+      console.error("Role checking error:", error);
+      // যদি ডাটাবেস ফেচ ফেইল করে, ডিফল্ট হিসেবে লাইব্রেরিতে পাঠাবো
+      router.replace("/my-library");
+    }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     const form = e.target;
@@ -21,11 +48,11 @@ export default function Login() {
     try {
       setLoading(true);
       await signIn(email, password);
-      toast.success("Login Successful!");
-      router.push("/");
+      // লগইন সফল হলে রোল চেক করে রিডাইরেক্ট
+      await handleNavigation(email);
     } catch (error) {
+      console.error(error);
       toast.error("Invalid email or password");
-    } finally {
       setLoading(false);
     }
   };
@@ -36,7 +63,8 @@ export default function Login() {
       const result = await googleSignIn();
       const user = result.user;
 
-      await fetch("/api/auth/create-user", {
+      // গুগল লগইনের পর ডাটাবেসে ইউজার সেভ/আপডেট করা
+      const saveRes = await fetch("/api/auth/create-user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -47,12 +75,15 @@ export default function Login() {
         }),
       });
 
-      toast.success("Google Login Successful!");
-      router.push("/");
+      if (saveRes.ok) {
+        // সেভ হওয়ার পর রোল চেক করে রিডাইরেক্ট
+        await handleNavigation(user.email);
+      } else {
+        throw new Error("Database sync failed");
+      }
     } catch (error) {
       console.error(error);
       toast.error(error.message);
-    } finally {
       setLoading(false);
     }
   };
@@ -60,6 +91,7 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl w-full flex bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
+        {/* Image Section */}
         <div className="hidden md:block w-1/2 relative order-2">
           <img
             src="https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80"
@@ -75,7 +107,7 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Left Side - Form */}
+        {/* Form Section */}
         <div className="w-full md:w-1/2 p-8 md:p-12 order-1">
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-8 text-center md:text-left">
             Sign In
