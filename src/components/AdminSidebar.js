@@ -15,7 +15,7 @@ export default function AdminSidebar() {
   const pathname = usePathname();
 
   const links = [
-    { name: "Dashboard", path: "/admin", icon: <FaChartPie /> },
+    { name: "Dashboard", path: "/admin/dashboard", icon: <FaChartPie /> },
     { name: "Manage Books", path: "/admin/books", icon: <FaBook /> },
     { name: "Manage Genres", path: "/admin/genres", icon: <FaList /> },
     { name: "Manage Users", path: "/admin/users", icon: <FaUsers /> },

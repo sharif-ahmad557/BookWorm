@@ -32,7 +32,6 @@ export default function AdminLayout({ children }) {
           setCheckingRole(false);
         }
       } else if (!loading && !user) {
-        // লগইন না থাকলে লগইন পেজে
         router.push("/login");
       }
     };

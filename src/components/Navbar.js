@@ -1,5 +1,6 @@
 "use client";
 
+import Logo from "@/components/Logo";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useState, useEffect, useRef } from "react";
@@ -17,7 +18,7 @@ import {
   FaChevronDown,
 } from "react-icons/fa";
 import toast from "react-hot-toast";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 export default function Navbar() {
   const { user, logOut } = useAuth();
@@ -27,6 +28,7 @@ export default function Navbar() {
   const [darkMode, setDarkMode] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
+  const pathname = usePathname(); 
 
   const profileRef = useRef(null);
   const joinRef = useRef(null);
@@ -103,25 +105,36 @@ export default function Navbar() {
           {/* Logo */}
           <Link
             href="/"
-            className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent flex items-center gap-2 hover:scale-105 transition-transform"
-          >
-            📚 BookWorm
+            >
+            <Logo className="w-8 h-8" />
           </Link>
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-8">
-            {navLinks.map((link) => (
-              <Link
-                key={link.name}
-                href={link.path}
-                className="relative text-gray-700 dark:text-gray-300 font-medium transition group py-2"
-              >
-                <span className="group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                  {link.name}
-                </span>
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-600 dark:bg-blue-400 transition-all duration-300 group-hover:w-full"></span>
-              </Link>
-            ))}
+            {navLinks.map((link) => {
+              const isActive = pathname === link.path; // একটিভ চেক
+              return (
+                <Link
+                  key={link.name}
+                  href={link.path}
+                  className={`relative font-medium transition group py-2 ${
+                    isActive
+                      ? "text-blue-600 dark:text-blue-400"
+                      : "text-gray-700 dark:text-gray-300"
+                  }`}
+                >
+                  <span className="group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                    {link.name}
+                  </span>
+                  {/* Active Indicator Line */}
+                  <span
+                    className={`absolute bottom-0 left-0 h-0.5 bg-blue-600 dark:bg-blue-400 transition-all duration-300 ${
+                      isActive ? "w-full" : "w-0 group-hover:w-full"
+                    }`}
+                  ></span>
+                </Link>
+              );
+            })}
 
             <button
               onClick={toggleTheme}
@@ -182,7 +195,7 @@ export default function Navbar() {
                       )}
 
                       <Link
-                        href="/admin"
+                        href="/admin/dashboard"
                         onClick={() => setIsProfileOpen(false)}
                         className="flex items-center gap-3 px-5 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                       >
@@ -264,16 +277,23 @@ export default function Navbar() {
       {isOpen && (
         <div className="md:hidden bg-white dark:bg-gray-900 border-t dark:border-gray-800 animate-slide-in-top shadow-inner">
           <div className="px-4 pt-4 pb-6 space-y-2">
-            {navLinks.map((link) => (
-              <Link
-                key={link.name}
-                href={link.path}
-                className="block px-4 py-3 rounded-lg text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-gray-800 transition-colors"
-                onClick={() => setIsOpen(false)}
-              >
-                {link.name}
-              </Link>
-            ))}
+            {navLinks.map((link) => {
+              const isActive = pathname === link.path;
+              return (
+                <Link
+                  key={link.name}
+                  href={link.path}
+                  className={`block px-4 py-3 rounded-lg text-base font-medium transition-colors ${
+                    isActive
+                      ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-gray-800"
+                      : "text-gray-700 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-gray-800"
+                  }`}
+                  onClick={() => setIsOpen(false)}
+                >
+                  {link.name}
+                </Link>
+              );
+            })}
 
             {isAdmin && (
               <Link
