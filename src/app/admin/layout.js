@@ -13,27 +13,32 @@ export default function AdminLayout({ children }) {
   const [checkingRole, setCheckingRole] = useState(true);
 
   useEffect(() => {
-    if (!loading) {
-      if (!user) {
+    const checkAdminRole = async () => {
+      if (user?.email) {
+        try {
+          const res = await fetch(`/api/users/${user.email}`);
+          const data = await res.json();
+
+          if (data.role === "admin") {
+            setIsAdmin(true);
+          } else {
+            toast.error("Access Denied: Admins Only!");
+            router.push("/"); // সাধারণ ইউজার হলে হোমপেজে পাঠিয়ে দাও
+          }
+        } catch (error) {
+          console.error("Role check failed");
+          router.push("/");
+        } finally {
+          setCheckingRole(false);
+        }
+      } else if (!loading && !user) {
+        // লগইন না থাকলে লগইন পেজে
         router.push("/login");
-        return;
       }
+    };
 
-     
-      
-
-      /*
-      fetch(`/api/users/${user.email}`)
-        .then(res => res.json())
-        .then(data => {
-            if(data.role === 'admin') setIsAdmin(true);
-            else router.push('/');
-            setCheckingRole(false);
-        })
-      */
-
-      setIsAdmin(true); 
-      setCheckingRole(false);
+    if (!loading) {
+      checkAdminRole();
     }
   }, [user, loading, router]);
 

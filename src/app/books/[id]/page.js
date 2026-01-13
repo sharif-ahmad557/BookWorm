@@ -3,7 +3,13 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { FaBookOpen, FaStar, FaPenNib, FaList } from "react-icons/fa";
+import {
+  FaBookOpen,
+  FaStar,
+  FaPenNib,
+  FaList,
+  FaUserCircle,
+} from "react-icons/fa";
 import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
 
@@ -13,9 +19,14 @@ export default function BookDetails() {
   const router = useRouter();
 
   const [book, setBook] = useState(null);
+  const [reviews, setReviews] = useState([]); // রিভিউ স্টেট
   const [loading, setLoading] = useState(true);
   const [currentShelf, setCurrentShelf] = useState("");
   const [updating, setUpdating] = useState(false);
+
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -32,6 +43,10 @@ export default function BookDetails() {
           const shelfData = await shelfRes.json();
           setCurrentShelf(shelfData.shelf || "");
         }
+
+        const reviewsRes = await fetch(`/api/reviews?bookId=${id}`);
+        const reviewsData = await reviewsRes.json();
+        setReviews(reviewsData);
       } catch (error) {
         console.error(error);
       } finally {
@@ -44,13 +59,11 @@ export default function BookDetails() {
 
   const handleShelfChange = async (e) => {
     const newShelf = e.target.value;
-
     if (!user) {
-      toast.error("Please login to add books to your library");
+      toast.error("Please login first");
       router.push("/login");
       return;
     }
-
     setUpdating(true);
     try {
       const res = await fetch("/api/user/library", {
@@ -62,34 +75,58 @@ export default function BookDetails() {
           shelf: newShelf,
         }),
       });
-
-      if (!res.ok) throw new Error("Failed to update shelf");
-
+      if (!res.ok) throw new Error();
       setCurrentShelf(newShelf);
-      toast.success(
-        `Book moved to ${newShelf.replace(/([A-Z])/g, " $1").trim()} shelf!`
-      );
+      toast.success("Shelf updated!");
     } catch (error) {
-      toast.error("Something went wrong");
+      toast.error("Failed to update shelf");
     } finally {
       setUpdating(false);
     }
   };
 
-  if (loading) {
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    if (!user) {
+      toast.error("Please login to write a review");
+      router.push("/login");
+      return;
+    }
+
+    setSubmittingReview(true);
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookId: id,
+          userEmail: user.email,
+          rating,
+          comment,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed");
+
+      toast.success("Review submitted! Waiting for admin approval.");
+      setComment("");
+      setRating(5);
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600"></div>
       </div>
     );
-  }
-
   if (!book)
-    return (
-      <div className="text-center py-20 text-2xl text-gray-500">
-        Book not found 😕
-      </div>
-    );
+    return <div className="text-center py-20 text-2xl">Book not found 😕</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
@@ -100,7 +137,6 @@ export default function BookDetails() {
           className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden"
         >
           <div className="flex flex-col md:flex-row">
-            {/* Cover Image */}
             <div className="md:w-1/3 p-8 bg-gray-100 dark:bg-gray-700/50 flex justify-center items-start">
               <img
                 src={book.coverImage}
@@ -108,15 +144,13 @@ export default function BookDetails() {
                 className="w-64 rounded-lg shadow-2xl object-cover"
               />
             </div>
-
-            {/* Details */}
             <div className="md:w-2/3 p-8 md:p-12">
               <div className="flex items-center gap-2 mb-4">
                 <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs font-bold px-3 py-1 rounded-full uppercase">
                   {book.genre?.name}
                 </span>
                 <div className="flex items-center text-yellow-400 text-sm font-bold gap-1">
-                  <FaStar />
+                  <FaStar />{" "}
                   <span>
                     {book.averageRating > 0
                       ? book.averageRating.toFixed(1)
@@ -124,7 +158,6 @@ export default function BookDetails() {
                   </span>
                 </div>
               </div>
-
               <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white mb-2">
                 {book.title}
               </h1>
@@ -132,20 +165,15 @@ export default function BookDetails() {
                 <FaPenNib className="text-sm" /> {book.author}
               </p>
 
-              {/* Action Buttons */}
               <div className="flex flex-wrap gap-4 mb-8 pb-8 border-b border-gray-200 dark:border-gray-700">
                 <div className="relative">
                   <select
                     value={currentShelf}
                     onChange={handleShelfChange}
                     disabled={updating}
-                    className={`appearance-none w-full md:w-auto px-6 py-3 pr-10 rounded-lg font-medium shadow-md outline-none cursor-pointer transition text-white
-                        ${
-                          currentShelf
-                            ? "bg-green-600 hover:bg-green-700"
-                            : "bg-blue-600 hover:bg-blue-700"
-                        }
-                        ${updating ? "opacity-70 cursor-wait" : ""}`}
+                    className={`appearance-none px-6 py-3 pr-10 rounded-lg font-medium shadow-md outline-none cursor-pointer transition text-white w-full md:w-auto ${
+                      currentShelf ? "bg-green-600" : "bg-blue-600"
+                    }`}
                   >
                     <option value="" disabled>
                       ➕ Add to Library
@@ -156,21 +184,7 @@ export default function BookDetails() {
                     </option>
                     <option value="read">✅ Read</option>
                   </select>
-                  {/* Dropdown Arrow Fix */}
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-white">
-                    <svg
-                      className="fill-current h-4 w-4"
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
-                    </svg>
-                  </div>
                 </div>
-
-                <button className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition flex items-center gap-2">
-                  <FaBookOpen /> Preview
-                </button>
               </div>
 
               <div className="prose dark:prose-invert max-w-none">
@@ -184,6 +198,126 @@ export default function BookDetails() {
             </div>
           </div>
         </motion.div>
+
+        {/* Review Section */}
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-12">
+          {/* Review List */}
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">
+              Community Reviews ({reviews.length})
+            </h2>
+            <div className="space-y-4">
+              {reviews.length === 0 ? (
+                <p className="text-gray-500 italic">
+                  No reviews yet. Be the first to review!
+                </p>
+              ) : (
+                reviews.map((review) => (
+                  <div
+                    key={review._id}
+                    className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow border-l-4 border-blue-500"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      {review.user?.photoURL ? (
+                        <img
+                          src={review.user.photoURL}
+                          alt="user"
+                          className="w-8 h-8 rounded-full"
+                        />
+                      ) : (
+                        <FaUserCircle className="text-2xl text-gray-400" />
+                      )}
+                      <div>
+                        <p className="font-bold text-sm dark:text-white">
+                          {review.user?.name || "Unknown User"}
+                        </p>
+                        <div className="flex text-yellow-400 text-xs">
+                          {[...Array(5)].map((_, i) => (
+                            <FaStar
+                              key={i}
+                              className={
+                                i < review.rating
+                                  ? "text-yellow-400"
+                                  : "text-gray-300"
+                              }
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-gray-600 dark:text-gray-300 text-sm">
+                      {review.comment}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Write Review Form */}
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">
+              Write a Review
+            </h2>
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
+              {user ? (
+                <form onSubmit={handleSubmitReview}>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Rating
+                    </label>
+                    <div className="flex gap-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setRating(star)}
+                          className={`text-2xl transition-transform hover:scale-110 ${
+                            star <= rating ? "text-yellow-400" : "text-gray-300"
+                          }`}
+                        >
+                          <FaStar />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Your Review
+                    </label>
+                    <textarea
+                      required
+                      rows="4"
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      placeholder="What did you think of this book?"
+                      className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    ></textarea>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={submittingReview}
+                    className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition disabled:opacity-50"
+                  >
+                    {submittingReview ? "Submitting..." : "Submit Review"}
+                  </button>
+                </form>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">
+                    Please login to write a review.
+                  </p>
+                  <button
+                    onClick={() => router.push("/login")}
+                    className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
+                  >
+                    Login Now
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
