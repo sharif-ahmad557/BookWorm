@@ -1,6 +1,5 @@
 "use client";
 
-import Logo from "@/components/Logo";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useState, useEffect, useRef } from "react";
@@ -28,7 +27,7 @@ export default function Navbar() {
   const [darkMode, setDarkMode] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
-  const pathname = usePathname(); 
+  const pathname = usePathname();
 
   const profileRef = useRef(null);
   const joinRef = useRef(null);
@@ -44,7 +43,7 @@ export default function Navbar() {
     }
 
     if (user?.email) {
-      fetch(`/api/user/users/${user.email}`)
+      fetch(`/api/users/${user.email}`)
         .then((res) => res.json())
         .then((data) => {
           if (data?.role === "admin") setIsAdmin(true);
@@ -92,7 +91,7 @@ export default function Navbar() {
   };
 
   const navLinks = [
-    { name: "Home", path: "/" },
+    { name: "Home", path: "/dashboard" },
     { name: "Browse Books", path: "/books" },
     ...(user ? [{ name: "My Library", path: "/my-library" }] : []),
     ...(user ? [{ name: "Tutorials", path: "/tutorials" }] : []),
@@ -102,17 +101,15 @@ export default function Navbar() {
     <nav className="bg-white/80 dark:bg-gray-900/90 backdrop-blur-md shadow-lg sticky top-0 z-50 transition-all duration-300 border-b border-gray-100 dark:border-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
-          {/* Logo */}
-          <Link
-            href="/"
-            >
-            <Logo className="w-8 h-8" />
+          {/* Logo Section */}
+          <Link href="/home" className="flex items-center gap-2">
+            <img src="/Logo.png" alt="Logo" className="h-24 w-30" />
           </Link>
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-8">
             {navLinks.map((link) => {
-              const isActive = pathname === link.path; // একটিভ চেক
+              const isActive = pathname === link.path;
               return (
                 <Link
                   key={link.name}
@@ -138,7 +135,7 @@ export default function Navbar() {
 
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition transform hover:rotate-12"
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition transform hover:rotate-12 text-gray-600 dark:text-gray-300"
             >
               {darkMode ? (
                 <FaSun className="text-yellow-400 text-xl" />
@@ -195,7 +192,7 @@ export default function Navbar() {
                       )}
 
                       <Link
-                        href="/admin/dashboard"
+                        href="/dashboard"
                         onClick={() => setIsProfileOpen(false)}
                         className="flex items-center gap-3 px-5 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                       >

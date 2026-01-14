@@ -39,9 +39,7 @@ export default function Footer() {
           <div className="space-y-6">
             <Link
               href="/"
-              className="text-3xl font-bold flex items-center gap-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600"
-            >
-              <FaBookOpen className="text-blue-600" /> BookWorm
+            ><img src="/Logo.png" alt="BookWorm Logo" className="h-40 w-40" />
             </Link>
             <p className="text-sm leading-relaxed text-gray-500 dark:text-gray-400">
               Your personal digital library. Track your reading journey,
@@ -171,8 +169,8 @@ export default function Footer() {
         <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-gray-500 dark:text-gray-400">
             © {currentYear}{" "}
-            <span className="font-bold text-blue-600">BookWorm</span>. All
-            rights reserved.
+            <span className="font-bold text-blue-600">BookWorm</span>. All rights
+            reserved.
           </p>
           <div className="flex gap-6 text-sm text-gray-500 dark:text-gray-400">
             <a href="#" className="hover:text-blue-600 transition-colors">

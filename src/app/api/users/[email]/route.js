@@ -1,19 +1,25 @@
+import { NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
-import { NextResponse } from "next/server";
 
-export async function GET(req, context) {
+export async function GET(req, { params }) {
   await dbConnect();
-  const params = await context.params;
-  const email = params.email;
+
+  const resolvedParams = await params;
+  const { email } = resolvedParams;
 
   try {
     const user = await User.findOne({ email });
+
     if (!user) {
-      return NextResponse.json({ message: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
-    return NextResponse.json(user);
+
+    return NextResponse.json({
+      email: user.email,
+      role: user.role,
+    });
   } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

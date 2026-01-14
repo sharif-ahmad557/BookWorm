@@ -9,17 +9,22 @@ import {
   FaPenNib,
   FaList,
   FaUserCircle,
+  FaBookmark,
+  FaCheckCircle,
 } from "react-icons/fa";
 import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
 
 export default function BookDetails() {
-  const { id } = useParams();
+  // useParams() এখন Promise রিটার্ন করতে পারে (Next.js 15+), তাই সেইফ থাকার জন্য unwrapped আইডি ব্যবহার করছি
+  const params = useParams();
+  const id = params?.id;
+
   const { user } = useAuth();
   const router = useRouter();
 
   const [book, setBook] = useState(null);
-  const [reviews, setReviews] = useState([]); // রিভিউ স্টেট
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentShelf, setCurrentShelf] = useState("");
   const [updating, setUpdating] = useState(false);
@@ -30,32 +35,43 @@ export default function BookDetails() {
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!id) return;
+
       try {
+        // ১. বইয়ের তথ্য
         const bookRes = await fetch(`/api/books/${id}`);
         if (!bookRes.ok) throw new Error("Book not found");
         const bookData = await bookRes.json();
         setBook(bookData);
 
-        if (user) {
+        // ২. রিভিউ (Array Check সহ)
+        const reviewsRes = await fetch(`/api/reviews?bookId=${id}`);
+        const reviewsData = await reviewsRes.json();
+        if (Array.isArray(reviewsData)) {
+          setReviews(reviewsData);
+        } else {
+          setReviews([]);
+        }
+
+        // ৩. শেলফ তথ্য (শুধু ইউজার থাকলে)
+        if (user?.email) {
           const shelfRes = await fetch(
             `/api/user/library?email=${user.email}&bookId=${id}`
           );
-          const shelfData = await shelfRes.json();
-          setCurrentShelf(shelfData.shelf || "");
+          if (shelfRes.ok) {
+            const shelfData = await shelfRes.json();
+            setCurrentShelf(shelfData.shelf || "");
+          }
         }
-
-        const reviewsRes = await fetch(`/api/reviews?bookId=${id}`);
-        const reviewsData = await reviewsRes.json();
-        setReviews(reviewsData);
       } catch (error) {
-        console.error(error);
+        console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    if (id) fetchData();
-  }, [id, user]);
+    fetchData();
+  }, [id, user]); // user পরিবর্তন হলে শেলফ আপডেট হবে
 
   const handleShelfChange = async (e) => {
     const newShelf = e.target.value;
@@ -121,12 +137,17 @@ export default function BookDetails() {
 
   if (loading)
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600"></div>
       </div>
     );
+
   if (!book)
-    return <div className="text-center py-20 text-2xl">Book not found 😕</div>;
+    return (
+      <div className="text-center py-20 text-2xl dark:text-white">
+        Book not found 😕
+      </div>
+    );
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
@@ -141,15 +162,15 @@ export default function BookDetails() {
               <img
                 src={book.coverImage}
                 alt={book.title}
-                className="w-64 rounded-lg shadow-2xl object-cover"
+                className="w-64 rounded-lg shadow-2xl object-cover hover:scale-105 transition-transform duration-500"
               />
             </div>
             <div className="md:w-2/3 p-8 md:p-12">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs font-bold px-3 py-1 rounded-full uppercase">
-                  {book.genre?.name}
+              <div className="flex items-center gap-3 mb-4">
+                <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">
+                  {book.genre?.name || "Fiction"}
                 </span>
-                <div className="flex items-center text-yellow-400 text-sm font-bold gap-1">
+                <div className="flex items-center text-yellow-400 text-sm font-bold gap-1 bg-yellow-50 dark:bg-yellow-900/20 px-2 py-1 rounded-md">
                   <FaStar />{" "}
                   <span>
                     {book.averageRating > 0
@@ -158,32 +179,58 @@ export default function BookDetails() {
                   </span>
                 </div>
               </div>
-              <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white mb-2">
+
+              <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white mb-2 leading-tight">
                 {book.title}
               </h1>
-              <p className="text-xl text-gray-600 dark:text-gray-300 mb-6 flex items-center gap-2">
-                <FaPenNib className="text-sm" /> {book.author}
+
+              <p className="text-xl text-gray-600 dark:text-gray-400 mb-8 flex items-center gap-2">
+                <span className="opacity-70">by</span>{" "}
+                <span className="font-semibold text-blue-600 dark:text-blue-400">
+                  {book.author}
+                </span>
               </p>
 
+              {/* Shelf Selection */}
               <div className="flex flex-wrap gap-4 mb-8 pb-8 border-b border-gray-200 dark:border-gray-700">
-                <div className="relative">
+                <div className="relative group">
                   <select
                     value={currentShelf}
                     onChange={handleShelfChange}
                     disabled={updating}
-                    className={`appearance-none px-6 py-3 pr-10 rounded-lg font-medium shadow-md outline-none cursor-pointer transition text-white w-full md:w-auto ${
-                      currentShelf ? "bg-green-600" : "bg-blue-600"
+                    className={`appearance-none px-8 py-3 pr-12 rounded-xl font-bold shadow-lg outline-none cursor-pointer transition-all transform active:scale-95 w-full md:w-auto text-white border-2 border-transparent hover:border-white/20 ${
+                      currentShelf
+                        ? "bg-green-600 hover:bg-green-700"
+                        : "bg-blue-600 hover:bg-blue-700"
                     }`}
                   >
-                    <option value="" disabled>
-                      ➕ Add to Library
+                    <option
+                      value=""
+                      disabled
+                      className="bg-white text-gray-900"
+                    >
+                      {updating ? "Updating..." : "➕ Add to Library"}
                     </option>
-                    <option value="wantToRead">📅 Want to Read</option>
-                    <option value="currentlyReading">
+                    <option
+                      value="wantToRead"
+                      className="bg-white text-gray-900"
+                    >
+                      📅 Want to Read
+                    </option>
+                    <option
+                      value="currentlyReading"
+                      className="bg-white text-gray-900"
+                    >
                       📖 Currently Reading
                     </option>
-                    <option value="read">✅ Read</option>
+                    <option value="read" className="bg-white text-gray-900">
+                      ✅ Read
+                    </option>
                   </select>
+                  {/* Custom Arrow */}
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white">
+                    <FaBookmark />
+                  </div>
                 </div>
               </div>
 
@@ -191,7 +238,7 @@ export default function BookDetails() {
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                   <FaList className="text-blue-500" /> Description
                 </h3>
-                <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+                <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line text-lg">
                   {book.description}
                 </p>
               </div>
@@ -200,52 +247,62 @@ export default function BookDetails() {
         </motion.div>
 
         {/* Review Section */}
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-12">
+        <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Review List */}
           <div>
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">
-              Community Reviews ({reviews.length})
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
+              Community Reviews{" "}
+              <span className="bg-gray-200 dark:bg-gray-700 text-sm px-2 py-1 rounded-full">
+                {reviews.length}
+              </span>
             </h2>
-            <div className="space-y-4">
+            <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
               {reviews.length === 0 ? (
-                <p className="text-gray-500 italic">
-                  No reviews yet. Be the first to review!
-                </p>
+                <div className="text-center py-10 bg-white dark:bg-gray-800 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
+                  <p className="text-gray-500 italic">
+                    No reviews yet. Be the first to share your thoughts!
+                  </p>
+                </div>
               ) : (
                 reviews.map((review) => (
                   <div
                     key={review._id}
-                    className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow border-l-4 border-blue-500"
+                    className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow"
                   >
-                    <div className="flex items-center gap-2 mb-2">
-                      {review.user?.photoURL ? (
-                        <img
-                          src={review.user.photoURL}
-                          alt="user"
-                          className="w-8 h-8 rounded-full"
-                        />
-                      ) : (
-                        <FaUserCircle className="text-2xl text-gray-400" />
-                      )}
-                      <div>
-                        <p className="font-bold text-sm dark:text-white">
-                          {review.user?.name || "Unknown User"}
-                        </p>
-                        <div className="flex text-yellow-400 text-xs">
-                          {[...Array(5)].map((_, i) => (
-                            <FaStar
-                              key={i}
-                              className={
-                                i < review.rating
-                                  ? "text-yellow-400"
-                                  : "text-gray-300"
-                              }
-                            />
-                          ))}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        {review.userPhoto ? (
+                          <img
+                            src={review.userPhoto}
+                            alt="user"
+                            className="w-10 h-10 rounded-full border-2 border-blue-100"
+                          />
+                        ) : (
+                          <FaUserCircle className="text-3xl text-gray-400" />
+                        )}
+                        <div>
+                          <p className="font-bold text-sm text-gray-900 dark:text-white">
+                            {review.userName || "BookWorm User"}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            Verified Reader
+                          </p>
                         </div>
                       </div>
+                      <div className="flex bg-yellow-50 dark:bg-yellow-900/20 px-2 py-1 rounded-lg">
+                        {[...Array(5)].map((_, i) => (
+                          <FaStar
+                            key={i}
+                            className={`text-sm ${
+                              i < review.rating
+                                ? "text-yellow-400"
+                                : "text-gray-300"
+                            }`}
+                          />
+                        ))}
+                      </div>
                     </div>
-                    <p className="text-gray-600 dark:text-gray-300 text-sm">
+                    <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
                       {review.comment}
                     </p>
                   </div>
@@ -256,15 +313,15 @@ export default function BookDetails() {
 
           {/* Write Review Form */}
           <div>
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">
-              Write a Review
-            </h2>
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl sticky top-24 border border-blue-100 dark:border-gray-700">
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
+                <FaPenNib className="text-blue-600" /> Write a Review
+              </h2>
               {user ? (
                 <form onSubmit={handleSubmitReview}>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Rating
+                  <div className="mb-6">
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                      Your Rating
                     </label>
                     <div className="flex gap-2">
                       {[1, 2, 3, 4, 5].map((star) => (
@@ -272,8 +329,10 @@ export default function BookDetails() {
                           key={star}
                           type="button"
                           onClick={() => setRating(star)}
-                          className={`text-2xl transition-transform hover:scale-110 ${
-                            star <= rating ? "text-yellow-400" : "text-gray-300"
+                          className={`text-3xl transition-transform hover:scale-110 focus:outline-none ${
+                            star <= rating
+                              ? "text-yellow-400 drop-shadow-sm"
+                              : "text-gray-300 dark:text-gray-600"
                           }`}
                         >
                           <FaStar />
@@ -281,35 +340,51 @@ export default function BookDetails() {
                       ))}
                     </div>
                   </div>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Your Review
+                  <div className="mb-6">
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                      Your Thoughts
                     </label>
                     <textarea
                       required
-                      rows="4"
+                      rows="5"
                       value={comment}
                       onChange={(e) => setComment(e.target.value)}
-                      placeholder="What did you think of this book?"
-                      className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      placeholder="What did you like or dislike? Who would you recommend this to?"
+                      className="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white outline-none transition-all resize-none"
                     ></textarea>
                   </div>
                   <button
                     type="submit"
                     disabled={submittingReview}
-                    className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition disabled:opacity-50"
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-xl font-bold hover:shadow-lg transform active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
                   >
-                    {submittingReview ? "Submitting..." : "Submit Review"}
+                    {submittingReview ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <FaCheckCircle /> Submit Review
+                      </>
+                    )}
                   </button>
                 </form>
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">
-                    Please login to write a review.
+                <div className="text-center py-10">
+                  <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600 dark:text-blue-400 text-2xl">
+                    <FaUserCircle />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                    Join the conversation
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm">
+                    Log in to rate this book and share your opinion with the
+                    community.
                   </p>
                   <button
                     onClick={() => router.push("/login")}
-                    className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
+                    className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 shadow-lg transition-transform hover:-translate-y-1"
                   >
                     Login Now
                   </button>

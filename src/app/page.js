@@ -1,56 +1,42 @@
 "use client";
 
-import ScrollToTop from "@/components/ScrollToTop";
-import Hero from "@/components/home/Hero";
-import Stats from "@/components/home/Stats";
-import Recommendations from "@/components/home/Recommendations";
-import {
-  FeaturesSection,
-  ReadingSanctuary,
-  TrendingGenres,
-  HowItWorks,
-  AppShowcase,
-  Testimonials,
-  FAQSection,
-  CTASection,
-} from "@/components/home/HomeSections";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
-export default function Home() {
+export default function RootPage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (loading) return;
+
+    if (!user) {
+      router.replace("/login");
+    } else {
+      // রোল চেক করার জন্য API কল
+      fetch(`/api/users/${user.email}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.role === "admin") {
+            router.replace("/admin/dashboard");
+          } else {
+            // রিকুয়ারমেন্ট: Normal User -> My Library
+            router.replace("/my-library");
+          }
+        })
+        .catch((err) => {
+          console.error("Redirect logic error:", err);
+          // এরর হলে সেফটি হিসেবে লাইব্রেরিতে পাঠানো
+          router.replace("/my-library");
+        });
+    }
+  }, [user, loading, router]);
+
+  // সাদা পেজ বা লোডার
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 overflow-x-hidden">
-      {/* Scroll To Top Button */}
-      <ScrollToTop />
-
-      {/* 1. Hero */}
-      <Hero />
-
-      {/* 2. Stats */}
-      <Stats />
-
-      {/* 3. Recommendations (Personalized) */}
-      <Recommendations />
-
-      {/* 4. Features */}
-      <FeaturesSection />
-      <ReadingSanctuary />
-
-      {/* 5. Trending Genres */}
-      <TrendingGenres />
-
-      {/* 6. How It Works */}
-      <HowItWorks />
-
-      {/* 7. App Showcase */}
-      <AppShowcase />
-
-      {/* 8. Testimonials */}
-      <Testimonials />
-
-      {/* 9. FAQ */}
-      <FAQSection />
-
-      {/* 10. CTA */}
-      <CTASection />
+    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-900">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
     </div>
   );
 }
