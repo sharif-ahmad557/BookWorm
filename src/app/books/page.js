@@ -18,14 +18,12 @@ export default function BrowseBooks() {
   const [selectedGenre, setSelectedGenre] = useState("All");
   const [sortBy, setSortBy] = useState("latest");
 
-  // ১. অথেন্টিকেশন প্রোটেকশন
   useEffect(() => {
     if (!authLoading && !user) {
       router.replace("/login");
     }
   }, [user, authLoading, router]);
 
-  // ২. ডাটা ফেচিং (শুধু যদি ইউজার থাকে)
   useEffect(() => {
     if (user) {
       fetchBooks();
@@ -66,7 +64,6 @@ export default function BrowseBooks() {
     setSearchTerm(e.target.value);
   };
 
-  // যদি অথ লোডিং হয় বা ইউজার না থাকে, তবে লোডিং স্পিনার দেখাবো (কন্টেন্ট হাইড থাকবে)
   if (authLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">

@@ -56,7 +56,6 @@ export default function ManageTutorials() {
   };
 
   const handleDelete = async (id) => {
-    // কনফার্মেশন পপআপ
     Swal.fire({
       title: "Are you sure?",
       text: "You won't be able to revert this!",
@@ -68,14 +67,12 @@ export default function ManageTutorials() {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          // ডিলিট রিকোয়েস্ট পাঠানো
           const res = await fetch(`/api/tutorials/${id}`, {
             method: "DELETE",
           });
 
           if (res.ok) {
             Swal.fire("Deleted!", "Tutorial has been deleted.", "success");
-            // লিস্ট থেকে আইটেমটি সাথে সাথে সরিয়ে দেওয়া (UI Update)
             setTutorials(tutorials.filter((t) => t._id !== id));
           } else {
             const data = await res.json();

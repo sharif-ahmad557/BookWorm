@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import Tutorial from "@/models/Tutorial";
 
-// ইউটিউব লিংক থেকে ID বের করার ফাংশন
 function getYouTubeID(url) {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
   const match = url.match(regExp);

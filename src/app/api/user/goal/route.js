@@ -7,11 +7,10 @@ export async function PATCH(req) {
   try {
     const { email, target } = await req.json();
 
-    // টার্গেট আপডেট করা হচ্ছে
     const updatedUser = await User.findOneAndUpdate(
       { email },
       { "readingGoal.target": parseInt(target) },
-      { new: true } // আপডেটেড ডাটা রিটার্ন করবে
+      { new: true } 
     );
 
     if (!updatedUser) {

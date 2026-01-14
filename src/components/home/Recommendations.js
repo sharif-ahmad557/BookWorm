@@ -54,7 +54,7 @@ export default function Recommendations() {
       </div>
 
       {loading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
@@ -65,7 +65,7 @@ export default function Recommendations() {
       )}
 
       {!loading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {recommendations.map((book) => (
             <Link key={book._id} href={`/books/${book._id}`}>
               <div className="group relative bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-3 overflow-hidden h-full flex flex-col border border-gray-100 dark:border-gray-700">

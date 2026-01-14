@@ -5,6 +5,8 @@ import User from "@/models/User";
 import Review from "@/models/Review";
 import Genre from "@/models/Genre";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   await dbConnect();
 

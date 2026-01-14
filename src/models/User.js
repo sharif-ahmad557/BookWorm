@@ -10,26 +10,26 @@ const UserSchema = new mongoose.Schema(
       enum: ["user", "admin"],
       default: "user",
     },
-    // ফায়ারবেসের UID আমরা এখানে সেভ রাখবো ফিউচার রেফারেন্সের জন্য
     firebaseUid: { type: String, required: true, unique: true },
 
-    // লাইব্রেরি শেলফ
     shelves: {
       wantToRead: [{ type: mongoose.Schema.Types.ObjectId, ref: "Book" }],
       currentlyReading: [
         {
           book: { type: mongoose.Schema.Types.ObjectId, ref: "Book" },
-          progress: { type: Number, default: 0 }, // কত পেজ বা % পড়া হয়েছে
+          progress: { type: Number, default: 0 },
         },
       ],
       read: [{ type: mongoose.Schema.Types.ObjectId, ref: "Book" }],
     },
 
-    // রিডিং চ্যালেঞ্জ (বোনাস ফিচার)
     readingGoal: {
       year: { type: Number, default: new Date().getFullYear() },
-      target: { type: Number, default: 0 },
+      target: { type: Number, default: 50 },
     },
+
+    // 👇👇👇 এই লাইনটি মিসিং থাকার কারণেই এরর আসছে 👇👇👇
+    favoriteGenres: [{ type: mongoose.Schema.Types.ObjectId, ref: "Genre" }],
   },
   { timestamps: true }
 );

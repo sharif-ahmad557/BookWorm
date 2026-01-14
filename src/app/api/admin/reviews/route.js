@@ -20,7 +20,7 @@ export async function GET() {
 export async function PATCH(req) {
   await dbConnect();
   try {
-    const { reviewId, action } = await req.json(); // action: 'approve' or 'reject'
+    const { reviewId, action } = await req.json(); 
 
     if (action === "reject") {
       await Review.findByIdAndDelete(reviewId);

@@ -26,7 +26,6 @@ export default function ManageUsers() {
   };
 
   const handleRoleChange = async (user, newRole) => {
-    // কনফার্মেশন মেসেজ
     Swal.fire({
       title: `Promote to ${newRole === "admin" ? "Admin" : "User"}?`,
       text: `Are you sure you want to make ${user.name} a ${newRole}?`,
@@ -46,7 +45,7 @@ export default function ManageUsers() {
 
           if (res.ok) {
             Swal.fire("Updated!", "User role has been updated.", "success");
-            fetchUsers(); // লিস্ট রিফ্রেশ
+            fetchUsers(); 
           } else {
             toast.error("Failed to update role");
           }

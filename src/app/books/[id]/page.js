@@ -16,7 +16,6 @@ import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
 
 export default function BookDetails() {
-  // useParams() এখন Promise রিটার্ন করতে পারে (Next.js 15+), তাই সেইফ থাকার জন্য unwrapped আইডি ব্যবহার করছি
   const params = useParams();
   const id = params?.id;
 
@@ -38,13 +37,11 @@ export default function BookDetails() {
       if (!id) return;
 
       try {
-        // ১. বইয়ের তথ্য
         const bookRes = await fetch(`/api/books/${id}`);
         if (!bookRes.ok) throw new Error("Book not found");
         const bookData = await bookRes.json();
         setBook(bookData);
 
-        // ২. রিভিউ (Array Check সহ)
         const reviewsRes = await fetch(`/api/reviews?bookId=${id}`);
         const reviewsData = await reviewsRes.json();
         if (Array.isArray(reviewsData)) {
@@ -53,7 +50,6 @@ export default function BookDetails() {
           setReviews([]);
         }
 
-        // ৩. শেলফ তথ্য (শুধু ইউজার থাকলে)
         if (user?.email) {
           const shelfRes = await fetch(
             `/api/user/library?email=${user.email}&bookId=${id}`
@@ -71,7 +67,7 @@ export default function BookDetails() {
     };
 
     fetchData();
-  }, [id, user]); // user পরিবর্তন হলে শেলফ আপডেট হবে
+  }, [id, user]); 
 
   const handleShelfChange = async (e) => {
     const newShelf = e.target.value;

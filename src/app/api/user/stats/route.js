@@ -3,27 +3,27 @@ import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
 import Review from "@/models/Review";
 import Book from "@/models/Book";
-import Genre from "@/models/Genre";
+import Genre from "@/models/Genre"; 
+
+export const dynamic = "force-dynamic";
 
 export async function GET(req) {
   await dbConnect();
   const { searchParams } = new URL(req.url);
   const email = searchParams.get("email");
 
-  console.log("📊 Stats API Requested for:", email);
-
-  if (!email) {
+  if (!email)
     return NextResponse.json({ error: "Email required" }, { status: 400 });
-  }
 
   try {
-    const user = await User.findOne({ email }).populate({
-      path: "shelves.read",
-      populate: { path: "genre" },
-    });
+    const user = await User.findOne({ email })
+      .populate({
+        path: "shelves.read",
+        populate: { path: "genre" },
+      })
+      .populate("favoriteGenres");
 
     if (!user) {
-      console.log("❌ Stats API: User not found");
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
@@ -32,26 +32,41 @@ export async function GET(req) {
     const progress =
       readingGoal > 0 ? Math.round((booksRead / readingGoal) * 100) : 0;
 
-    const genreCounts = {};
-    if (user.shelves?.read) {
-      user.shelves.read.forEach((book) => {
-        const genreName = book.genre?.name || "Other";
-        genreCounts[genreName] = (genreCounts[genreName] || 0) + 1;
-      });
+    let genreData = [];
+
+    if (Array.isArray(user.favoriteGenres) && user.favoriteGenres.length > 0) {
+      genreData = user.favoriteGenres.map((g) => ({
+        name: g.name || "Genre",
+        value: 1,
+      }));
     }
-    const genreData = Object.keys(genreCounts).map((key) => ({
-      name: key,
-      value: genreCounts[key],
-    }));
+    else if (user.shelves?.read && user.shelves.read.length > 0) {
+      const genreCounts = {};
+      user.shelves.read.forEach((book) => {
+        if (book && book.genre) {
+          const gName = book.genre.name || "Unknown";
+          genreCounts[gName] = (genreCounts[gName] || 0) + 1;
+        }
+      });
+      genreData = Object.keys(genreCounts).map((key) => ({
+        name: key,
+        value: genreCounts[key],
+      }));
+    }
+    else {
+      genreData = [{ name: "No Data", value: 1 }];
+    }
 
     let reviews = [];
     try {
-      const userId = user.firebaseUid;
-      const mongoId = user._id;
       reviews = await Review.find({
-        $or: [{ user: userId }, { user: mongoId }],
+        $or: [
+          { user: user.firebaseUid }, 
+          { user: user._id },
+        ],
       });
-    } catch (reviewError) {
+    } catch (e) {
+      console.log("Review fetch ignored:", e.message);
       reviews = [];
     }
 
@@ -70,23 +85,18 @@ export async function GET(req) {
       "Nov",
       "Dec",
     ];
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
+    const now = new Date();
 
     for (let i = 5; i >= 0; i--) {
-      let targetMonthIndex = currentMonth - i;
-      let targetYear = currentYear;
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthName = months[d.getMonth()];
 
-      if (targetMonthIndex < 0) {
-        targetMonthIndex += 12;
-        targetYear -= 1;
-      }
-      const monthName = months[targetMonthIndex];
       const count = reviews.filter((r) => {
+        if (!r.createdAt) return false;
         const rDate = new Date(r.createdAt);
         return (
-          rDate.getMonth() === targetMonthIndex &&
-          rDate.getFullYear() === targetYear
+          rDate.getMonth() === d.getMonth() &&
+          rDate.getFullYear() === d.getFullYear()
         );
       }).length;
 
@@ -101,10 +111,14 @@ export async function GET(req) {
       monthlyData,
     });
   } catch (error) {
-    console.error("🔥 Stats API Error:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
+    console.error("🔥 Stats API Final Catch:", error);
+
+    return NextResponse.json({
+      booksRead: 0,
+      readingGoal: 50,
+      progress: 0,
+      genreData: [{ name: "Error", value: 1 }],
+      monthlyData: [],
+    });
   }
 }
